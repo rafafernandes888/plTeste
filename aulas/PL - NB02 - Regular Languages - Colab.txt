@@ -1,0 +1,2009 @@
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+NB02: Regular Languages
+Language Processing
+LEI/2025-26
+Nuno Macedo
+Universidade do Minho
+
+keyboard_arrow_down 2.1 Regular Languages
+Regular languages is the simplest class of languages in Chomsky hierarchy
+They cannot express dependencies like "the same number of symbols" or
+properly nested structures
+Recognizable by finite automata
+Described formally by regular expressions (REs)
+Important for lexical analysis, input validation, and simple pattern recognition
+
+keyboard_arrow_down Example: A Language of Valid Identifiers
+The language of Python identifiers
+
+✅ aux_function , _hiddenVar , xy23
+❌ 23xy , ab+xy , -xyz
+aux_function = True
+_hiddenVar = True
+xy23 = True
+# 23xy = True
+# ab+xy = True
+# -xyz = True
+
+Pattern description:
+
+Arbitrary-length sequences of alphanumeric or underscore symbols
+Cannot start with a numeric symbol (why?)
+How can we formally specify these rules?
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+1/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+How can we efficiently recognize such identifiers?
+
+keyboard_arrow_down 2.2 Regular Expressions
+Regular expressions (REs), also known as regexes, are human-friendly ways to
+describe regular languages
+Main uses:
+Define lexing rules for compilers/interpreters
+Detect patterns in text processing
+Search and replace in editors or IDEs
+
+Regular expressions in theory
+A RE is built from:
+Base cases:
+Symbols a ∈ Σ
+Empty set: ∅
+Empty word: ϵ
+Inductive cases (for expressions e1 , e2 ):
+Concatenation: e1 e2
+Union / alternation: e1 |e2
+Kleene closure: e∗1 (zero or more repetitions)
+
+Example: A Language of Valid Identifiers (basic RE)
+(a|b|. . . |w|z|A|B|. . . |W |Z |_)(a|b|. . . |w|z|A|B|. . . |W |Z |_|0|1|. . . |9)
+(a|b|. . . |w|z|A|B|. . . |W |Z |_)
+
+∗
+
+any alphabetic symbol or an underscore
+
+(a|b|. . . |w|z|A|B|. . . |W |Z |_|0|1|. . . |9)
+
+any alpha-numeric symbol or
+
+an underscore
+(a|b|. . . |w|z|A|B|. . . |W |Z |_|0|1|. . . |9)
+
+∗
+
+any alpha-numeric symbol or
+
+an underscore, repeated an arbitrary number of times
+(a|b|. . . |w|z|A|B|. . . |W |Z |_)(a|b|. . . |w|z|A|B|. . . |W |Z |_|0|1|. . . |9)
+
+∗
+
+any alpha-numeric symbol or an underscore, followed by an arbitrary
+number of alpha-numeric symbols or underscores
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+2/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+Concrete syntax for regular expressions
+Theory of computation deals with the formal notion of REs
+RE processors in introduce other operators to facilitate the writing of REs
+In most cases, syntactic sugar that does not increase theoretical
+expressivity
+Syntax may vary slightly depending on the RE processor
+A popular syntax is the one inspired by Perl, which is followed by Python
+Special symbols
+. matches any symbol except a new line
+^ matches the start of the string
+$ matches the end of the string
+Repetition
+* matches any repetition of the preceeding RE
++ matches one or more repetitions of the preceeding RE
+? matches 0 or 1 repetitions of the preceeding RE
+{n} matches exactly n repetitions of the preceeding RE
+{m,n} matches between n and m repetitions of the preceeding RE
+| union (alternative) of two REs
+[...] creates a group of alternative symbols
+- can be used for ranges of symbols (to match - , put it in the begining
+or end of group)
+^ denotes the complement, all symbols except those declared
+All symbols treated as literal inside group except - , ] and ^
+Symbol groups
+\d for any digit symbol
+\s for any whitespace symbol
+\w any alpha-numberic symbol plus the underscore _
+\b matches the boundary of words without consuming any symbol
+Upper-case versions for complement set (e.g., \D for any symbol that is
+not a digit)
+Operator precedence is (roughly):
+Repetition operators → Concatenation → Alternative
+Parenthesis ( ) to group REs and change operator precedence
+From now on, we will use this concrete syntax, not the formal RE notation
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+3/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+Example: A Language of Valid Identifiers (extended RE)
+[a-zA-Z_][a-zA-Z0-9_]*
+a-z all symbols between a and z
+A-Z all symbols between A and Z
+0-9 all symbols between 0 and 9
+[a-zA-Z_] any symbol between a and z , A and Z or underscore _
+[a-zA-Z0-9_] any symbol between a and z , A and Z , 0 and 9 or
+underscore _
+[a-zA-Z0-9_]* any repetitions of symbols between a and z , A and
+Z , 0 and 9 or underscore _
+Or simply [a-zA-Z_]\w*
+
+keyboard_arrow_down Example: A Language for Floating Point Numbers
+print(10.34)
+print(.34)
+print(10.)
+# print(.)
+print(-.34)
+print(+10.)
+print(10.34E-3)
+print(.34e3)
+10.34
+0.34
+10.0
+-0.34
+10.0
+0.01034
+340.0
+
+Unsigned integer numbers:
+\d+ → 23
+Unsigned floating point numbers:
+\d+\.\d+ → 23.45
+Unsigned integer or floating point numbers:
+\d+(\.\d+)? → 23 or 23.45
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+4/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+Unsigned integer or floating point numbers, possibly omitting one side of point
+but not both:
+\d+(\.\d*)?|\.\d+ → 23 or 23.45 or .45 or 23.
+Possibly signed integer or floating point numbers, possibly omitting one side of
+point but not both:
+[+-]?(\d+(\.\d*)?|\.\d+) → +23 or -23.45 or .45 or +23.
+Possibly signed floating point numbers, possibly omitting one side of point but
+not both, with optional, possibly signed, exponent:
+[+-]?(\d+\.\d*|\d*\.\d+)([eE][+-]?\d+)? → +23 or -23.45E+56 or
+.45e-56 or +23.e56
+
+Beyond word recognition
+Although REs in theory are used to recognize words belonging to a language, in
+practice they are often used find substrings in a larger text
+In this case, the output is no longer yes/no, but a set of matches
+The language accepted by the RE does not change, but the set of returned
+matches may change depending on the RE processor
+This is the basis of the tokenization stage in the language processing pipeline
+
+keyboard_arrow_down Example: A Language of Valid Identifiers (matches)
+How many identifiers are there in the following code?
+That is, how many matches are there for [a-ZA-Z_]\w* ?
+for i in range(10): print(i)
+
+The RE will recognize i , range , print , for and in
+But also r , ra , ran , rang and p , pr , pri , prin !
+
+📌 for and in are not actually identifiers, they are keywords; we will address this
+overlap later
+
+Greedy vs. Lazy matching
+Theoretical REs are only concerned about recognition
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+5/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+Whether a word belongs to the language or not
+But the same word may be matched by a RE in different ways
+This is not irrelevant for the user when processing a text
+By default, repetition operators are greedy, the match as many symbols as
+possible
+
+Lazy variants are used when a ? is appended ( *? , +? , {n,m}? )
+This affects how the RE processor matches, but not the overall language
+
+Example: detecting text between quotes in input text I say "Hello" and you
+say "World"
+Regex ".*" is greedy, it has a single match, "Hello" and you say
+"World"
+Regex ".*?" is lazy, it has two matches, both "Hello" and "World"
+
+Capturing groups
+Often we are only interested in part of the substring matched by an RE
+REs support the introduction of capturing groups using parenthesis (...) ,
+that specify what is returned in a match
+
+Example: detecting text between quotes in input text I say "Hello" and you
+say "World"
+with ".*?" , matches will include the quotes, "Hello" and "World"
+with capturing group "(.*?)" , matches will be only Hello and World
+Sometimes we need to use parenthesis to group expressions but do not want a
+capturing group
+In that case we have to escape the delimiters with (?:...)
+Capturing groups can also be named be using (?P<name>...)
+
+Backreferences
+Modern REs also allow backreferences to capturing groups with \number
+If the capturing group was named, (?P=name) can be used instead
+This is a powerful feature that goes beyond what theoretical REs allow
+
+Example: find all repeated alpha-numeric patterns
+(\w+)\1 matches words like AA , ABAB or ABCABC
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+6/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+Also useful for text substitution that preserves part of the original match
+
+Exercise: Find title patterns in JSON file
+Open file cinema.json in any text editor of your choice.
+Find all occurrences of:
+All titles
+All titles that include a number
+All titles that include a real number
+All titles that include two numbers
+All titles where character x does not occur
+All titles with repeated words
+All multi-line titles
+Remove all subtitles (identified by : )
+Surround numbers in titles by single quotes '
+
+Regular expressions in Python
+Regular expressions processing in Python are provided by module re (see
+documentation)
+Very rich module with advanced features, based on the well-known Perl syntax
+
+keyboard_arrow_down Functions for detecting matches
+re.match(regex, text) tries to match regex from the beginning of text
+re.fullmatch(regex, text) tries to match regex from the beginning to the
+end text
+re.search(regex, text) tries to match regex anywhere in text (will
+return first occurrence)
+re.finditer(regex, text) returns an iterator over all (non-overlapping)
+matches of regex in text
+re.findall(regex, text) returns all (non-overlapping) substrings of text
+matched bt regex
+All these functions, except findall() , return Match objects with information
+about the matched substring
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+7/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+For a Match m :
+m.group(i) retrieves the substring matched by the i th capturing group
+m.span(i) (or m.start(i) and m.end(i) ) returns indexes matched
+by the i th capturing group
+Group 0 is always the full match, regardless of capturing groups
+If you use named capturing groups, you can also get a dictionaty of
+groups with m.groupdict()
+
+Function for substitutions
+re.sub(regex, repl, text) replaces all matches of regex in text by
+repl
+repl can be:
+a string that can refer to the regex capturing groups
+a function that processes Match objects
+
+Raw strings and Python
+Regular expressions have their own special characters prefixed with \
+To avoid clashes with Python's special characters, you should write them as raw
+strings, prefixed with r
+r"\w+" vs. "\\w+"
+
+keyboard_arrow_down 2.3 Finite Automata
+REs provide a way to specify regular languages
+However, we need a mechanism to operationalize the recognition of words
+
+Finite automata (FA) are such a mechanism for regular languages
+An FA is essentially a state machine with transitions triggered by alphabet
+symbols
+After processing the full input, the reached state determines acceptance
+FAs give an answer about language membership in linear time over the length of
+the input
+Each symbol of the input is inspected once
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+8/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+📌 Throughout the notebook, the automata Python module is used to draw and
+manipulate automata. This is not part of the syllabus.
+# libraries to allow the visualization and manipulation of automata
+!apt-get update -qq
+!apt-get install -y -qq graphviz graphviz-dev
+!pip install -q pygraphviz coloraide
+!pip install -q automata-lib
+Mostrar saída oculta
+from automata.fa.dfa import DFA
+from automata.fa.nfa import NFA
+
+keyboard_arrow_down Deterministic finite automata
+keyboard_arrow_down Finite automata by example
+For the alphabet Σ = {0, 1}, what are the languages recognized by the following
+automata?
+DFA(
+allow_partial = False,
+states={'q₀', 'q₁'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': { '0': 'q₀', '1' : 'q₁' },
+'q₁': { '0': 'q₁', '1' : 'q₁' } },
+initial_state='q₀',
+final_states={'q₁'} )
+
+0,1
+
+0
+q₀
+
+1
+
+q₁
+
+✅ 1 , 01 , 010 , ...
+❌ ɛ, 0 , 00 , 000 , ...
+Bitstrings with at least one 1 , or 0*1(0|1)* .
+DFA(
+allow_partial = False,
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+9/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+states={'q₀', 'q₁'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': { '0': 'q₀', '1' : 'q₁' },
+'q₁': { '0': 'q₀', '1' : 'q₁' } },
+initial_state='q₀',
+final_states={'q₁'} )
+
+1
+
+0
+q₀
+
+1
+0
+
+q₁
+
+✅ 1 , 01 , 0101 , ...
+❌ ɛ, 0 , 10 , 1110 , ...
+Bitstrings that end in a 1 , or (0|1)*1 .
+DFA(
+allow_partial = False,
+states={'q₀', 'q₁', 'q₂'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': { '0': 'q₀', '1' : 'q₁' },
+'q₁': { '0': 'q₀', '1' : 'q₂' },
+'q₂': { '0': 'q₀', '1' : 'q₂' } },
+initial_state='q₀',
+final_states={'q₂'} )
+
+0
+q₀
+
+1
+0
+
+q₁
+
+1
+1
+
+0
+
+q₂
+
+✅ 11 , 011 , 01011 , ...
+❌ ɛ, 0 , 1 , 01 , 110 , ...
+Bitstrings that end in two 1 s, or (0|1)*11 .
+
+DFA formal definition
+A deterministic finite automaton (DFA) is a tuple (Q, Σ, δ, qi , F )
+Q
+
+is a finite set of states
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+10/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+Σ
+
+is the input alphabet
+
+δ : Q × Σ → Q
+
+is a transition function
+
+qi ∈ Q
+
+is the initial state
+
+F ⊆ Q
+
+is a set of final (or accepting) states
+
+A word w ∈ Σ∗ is processed by a DFA by successively applying δ to the current
+state and symbols of w, starting in state qi
+We call this the extended transition function δ^ : Q × Σ∗ → Q
+^
+δ (q, ε) = q
+^
+^
+δ (q, xa) = δ(δ (q, x), a)
+
+If the state reached after processing all symbols of w is final, w belongs to the
+language; otherwise, it does not
+A word w is accepted iff δ^(qi , w) ∈ F
+
+Finite automata representations
+FAs have two typical, human-friendly representations
+As a graph, states are nodes, transitions are edges, initial state with incoming
+arrow, accepting states with double border (alphabet is implicit)
+As a table, states are rows, alphabet symbols are columns, transitions are table
+entries, initial state with →, accepting states with *
+
+DFA Example: Bitstrings with at least one 1
+0*1(0|1)*
+Formally
+Q = {q 0 , q 1 }
+Σ = {0, 1}
+qi = q0
+F = {q 1 }
+δ(q 0 , 0) = q 0
+
+, δ(q0 , 1) = q1 , δ(q1 , 0) = q1 , δ(q1 , 1) = q1
+
+Table representation
+state
+
+0
+
+1
+
+→ q₀
+
+q₀
+
+q₁
+
+* q₁
+
+q₁
+
+q₁
+
+Is 010 accepted?
+Following the table or diagram:
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+11/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+start at q0
+consume 0 , stay in q0
+consume 1 , transition to q1
+consume 0 , stay in q1
+no more symbols to consume, q1 is accepting state, word is accepted
+q₀ ──0──▶ q₀ ──1──▶ q₁ ──0──▶ q₁ ✅
+Or formally:
+^
+^
+^
+δ (q 0 , 010) = δ (δ(q 0 , 0), 10) = δ (q 0 , 10)
+^
+^
+^
+δ (q 0 , 10) = δ (δ(q 0 , 1), 0) = δ (q 1 , 0)
+^
+^
+^
+δ (q 1 , 0) = δ (δ(q 1 , 0), ε) = δ (q 1 , ε)
+δ(q 1 , ε) = q 1
+q1 ∈ F
+
+✅
+
+Interpretation of FAs
+Finite automata do not have any memory beyond the (finite) states
+In a sense, each state "memorizes" the paths that have led to it
+Since the number of states is finite by definition, there is a limit to what an FA
+can remember
+This limits the languages that FAs can recognize
+
+keyboard_arrow_down 🛠 DFA Exercise
+What is the language recognized by the following DFA?
+What do the states represent?
+You can assign any labels to states to make them more inteligible
+DFA(
+allow_partial = False,
+states={'q₀', 'q₁', 'q₂', 'q₃'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': { '0': 'q₁', '1' : 'q₂' },
+'q₁': { '0': 'q₀', '1' : 'q₃' },
+'q₂': { '0': 'q₃', '1' : 'q₀' },
+'q₃': { '0': 'q₂', '1' : 'q₁' } },
+initial_state='q₀',
+final_states={'q₀'} )
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+12/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+0
+
+q₁
+
+0
+
+1
+1
+
+q₃
+
+0
+0
+
+1
+1
+
+q₀
+
+q₂
+
+DFA(
+allow_partial = False,
+states={'even-even', 'odd-even', 'even-odd', 'odd-odd'},
+input_symbols={'0', '1'},
+transitions={
+'even-even': { '0': 'odd-even', '1' : 'even-odd' },
+'odd-even': { '0': 'even-even', '1' : 'odd-odd' },
+'even-odd': { '0': 'odd-odd', '1' : 'even-even' },
+'odd-odd':
+{ '0': 'even-odd', '1' : 'odd-even' } },
+initial_state='even-even',
+final_states={'even-even'} )
+
+0
+
+odd-even
+
+0
+even-even
+
+1
+1
+
+odd-odd
+
+0
+0
+
+1
+1
+
+Complete vs. incomplete DFAs
+The DFAs we have seen so far are said to be complete, because δ is defined for
+all pairs of states/symbols
+A DFA is said to be incomplete if δ is not defined for some pair of states/symbols
+When a non-existing transition is triggered, a word is immediately rejected
+Any incomplete DFA can be made complete trivially by adding a "dead state"
+that leads nowhere
+By convention, the "dead state" is denoted ∅
+
+keyboard_arrow_down DFA Example: Complete vs. incomplete
+All bitstrings that do not have two consecutive 1 symbols
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+13/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+(What would be the regular expression?)
+dfa = DFA(
+allow_partial = True,
+states={'q₀', 'q₁'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': { '0': 'q₀', '1' : 'q₁' },
+'q₁': { '0': 'q₀' } },
+initial_state='q₀',
+final_states={'q₀', 'q₁'} )
+dfa
+
+0
+1
+0
+
+q₀
+
+q₁
+
+q₀ ──0──▶ q₀ ──1──▶ q₁ ──1──▶ ⛔️
+dfa.to_complete("∅")
+
+0
+
+0,1
+1
+0
+
+q₀
+
+1
+
+q₁
+
+∅
+
+q₀ ──0──▶ q₀ ──1──▶ q₁ ──1──▶ ∅ ❌
+
+keyboard_arrow_down DFA Example: A language of valid identifiers
+Simplified version for a reduced alphabet $\Sigma$$\Sigma$
+state
+
+a
+
+b
+
+c
+
+A
+
+B
+
+C
+
+0
+
+1
+
+2
+
+_
+
++
+
+-
+
+→ q₀
+
+q₁
+
+q₁
+
+q₁
+
+q₂
+
+q₂
+
+q₂
+
+q₁
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+*q₁
+
+q₁
+
+q₁
+
+q₁
+
+q₁
+
+q₁
+
+q₁
+
+q₁
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+q₂
+
+DFA(
+allow_partial = False,
+states={'q₀', 'q₁', '∅'},
+input_symbols={'a','b','c','A','B','C','0','1','2','_','-','+'},
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+14/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+transitions={
+'q₀': { c: 'q₁' for c in {'a','b','c','A','B','C','_'}} | { c: '∅' f
+'q₁': { c: 'q₁' for c in {'a','b','c','A','B','C','0','1','2','_'} }
+'∅' : { c: '∅' for c in {'a','b','c','A','B','C','0','1','2','_','initial_state='q₀',
+final_states={'q₁'} )
+
++,-,0,1,2
+q₀
+
++,-,0,1,2,A,B,C,_,a,b,c
+
+0,1,2,A,B,C,_,a,b,c
+A,B,C,_,a,b,c
++,-
+
+∅
+
+q₁
+
+DFA(
+allow_partial = True,
+states={'q₀', 'q₁'},
+input_symbols={'a','b','c','A','B','C','0','1','2','_','-','+'},
+transitions={
+'q₀': { c: 'q₁' for c in {'a','b','c','A','B','C','_'}},
+'q₁': { c: 'q₁' for c in {'a','b','c','A','B','C','0','1','2','_'} }
+initial_state='q₀',
+final_states={'q₁'} )
+
+0,1,2,A,B,C,_,a,b,c
+
+q₀
+
+A,B,C,_,a,b,c
+
+q₁
+
+keyboard_arrow_down Non-deterministic finite automata
+Non-deterministic finite automata allow multiple outgoing transitions for each
+pair state/symbol
+A non-deterministic finite automaton (NFA) is a tuple
+$(Q,\Sigma,\delta,q_i,F)$$(Q,\Sigma,\delta,q_i,F)$
+$Q$$Q$ is a finite set of states
+$\Sigma$$\Sigma$ is the input alphabet
+$\delta : Q \times \Sigma → \color{red}{\mathcal{P}(Q)}$$\delta : Q \times
+\Sigma → \color{red}{\mathcal{P}(Q)}$ is a transition function
+$q_i \in Q$$q_i \in Q$ is the initial state
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+15/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+$F \subseteq Q$$F \subseteq Q$ is a set of final (or accepting) states
+When executing an NFA, we can be in multiple states simultaneously, rather
+than in a single one as in a DFA
+A word $w \in \Sigma^*$$w \in \Sigma^*$ is processed by an NFA by
+successively applying $\delta$$\delta$ to all the current states and symbols of
+$w$$w$, starting in states $\{q_i\}$$\{q_i\}$
+We call this the extended transition function $\hat{\delta} : Q \times
+\Sigma^* → \mathcal{P}(Q)$$\hat{\delta} : Q \times \Sigma^* →
+\mathcal{P}(Q)$
+$\hat{\delta}(q,\varepsilon) = \{q\}$$\hat{\delta}(q,\varepsilon) = \{q\}$
+$\hat{\delta}(q,xa) = \bigcup_{p \in \hat{\delta}(q,x)}
+\delta(p,a)$$\hat{\delta}(q,xa) = \bigcup_{p \in \hat{\delta}(q,x)}
+\delta(p,a)$
+If one of the states reached after processing all symbols of $w$$w$ is final,
+$w$$w$ belongs to the language; otherwise, it does not
+A word $w$$w$ is accepted iff $\color{red}{\hat{\delta}(q_i,w) \cap F}
+\neq \emptyset$$\color{red}{\hat{\delta}(q_i,w) \cap F} \neq \emptyset$
+
+Executing NFAs
+Since we now may be in multiple states of the NFA simultaneously, an execution
+is a tree of states
+This is called a computation tree
+A word is accepted if any branch of a tree finishes in an accepting state
+
+keyboard_arrow_down NFA Example: Bitstrings whose 2nd to last symbol is 1
+(0|1)*1(0|1)
+nfa = NFA(
+states={'q₀', 'q₁', 'q₂'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': { '0' : {'q₀'}, '1' : {'q₀', 'q₁'} },
+'q₁': { '0' : {'q₂'}, '1' : {'q₂'} },
+'q₂': { '0' : {}, '1' : {} } },
+initial_state='q₀',
+final_states={'q₂'} )
+nfa
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+16/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+0,1
+1
+
+q₀
+
+q₁
+
+0,1
+
+q₂
+
+Is 0110 accepted by this NFA?
+With a computation tree
+0
+
+1
+
+1
+
+0
+
+───────────────────────────────────
+q₀
+│
+└──0──▶ q₀
+│
+├──1──▶ q₀
+│
+
+│
+
+│
+
+├──1──▶ q₀
+
+│
+
+│
+
+│
+
+│
+
+│
+
+└──0──▶ q₀
+
+│
+
+│
+
+│
+
+└──1──▶ q₁
+
+│
+
+│
+
+│
+
+└──0──▶ q₂
+
+❌
+
+✅
+
+│
+└──1──▶ q₁
+│
+└──1──▶ q₂
+│
+└──0──▶ ⛔️
+
+Or formally:
+$\hat{\delta}(q_0,0110) = \bigcup_{p \in \delta(q_0,0)} \hat{\delta}(p,110) =
+\hat{\delta}(q_0,110)$$\hat{\delta}(q_0,0110) = \bigcup_{p \in
+\delta(q_0,0)} \hat{\delta}(p,110) = \hat{\delta}(q_0,110)$
+$\hat{\delta}(q_0,110) = \bigcup_{p \in \delta(q_0,)} \hat{\delta}(p,110) =
+\hat{\delta}(q_0,10) \cup \hat{\delta}(q_1,10)$$\hat{\delta}(q_0,110) =
+\bigcup_{p \in \delta(q_0,)} \hat{\delta}(p,110) = \hat{\delta}(q_0,10) \cup
+\hat{\delta}(q_1,10)$
+$\hat{\delta}(q_0,10) \cup \hat{\delta}(q_1,10) = (\hat{\delta}(q_0,0) \cup
+\hat{\delta}(q_1,0)) \cup \hat{\delta}(q_2,0) = (\hat{\delta}(q_0,\varepsilon)
+\cup \hat{\delta}(q_2,\varepsilon)) \cup \emptyset $$\hat{\delta}(q_0,10)
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+17/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+\cup \hat{\delta}(q_1,10) = (\hat{\delta}(q_0,0) \cup \hat{\delta}(q_1,0))
+\cup \hat{\delta}(q_2,0) = (\hat{\delta}(q_0,\varepsilon) \cup \hat{\delta}
+(q_2,\varepsilon)) \cup \emptyset $
+$\hat{\delta}(q_0,\varepsilon) \cup \hat{\delta}(q_2,\varepsilon) = \{ q_0,
+q_2\}$$\hat{\delta}(q_0,\varepsilon) \cup \hat{\delta}(q_2,\varepsilon) = \{
+q_0, q_2\}$
+$F \cap \{ q_0, q_2\} = \{ q_2 \} \neq \emptyset$$F \cap \{ q_0, q_2\} = \{
+q_2 \} \neq \emptyset$ ✅
+
+NFAs vs. DFAs
+NFAs and DFAs are equivalent formalisms
+They can recognize exactly the same languages, and can be converted
+between one another automatically
+Some languages are easier to represent in NFAs
+But DFA recognition is more efficient
+Usually, we manipulate NFAs, but then translate into DFAs for efficent
+implementation
+However, the resulting DFA can be considerably bigger, with up to
+$2^{|Q|}$$2^{|Q|}$ states for an NFA with states $Q$$Q$
+
+NFA → DFA: subset construction
+The core idea behind this construction is to create a state in the DFA for each
+possible subset of states in the NFA
+We will use these subsets as labels of the DFA to make the transformation clear
+For instance, a DFA state $\{q_0, q_2\}$$\{q_0, q_2\}$ will represent being
+simultaneously in $q_0$$q_0$ and $q_2$$q_2$ in the NFA
+To translate an NFA
+$(Q_N,\Sigma,\delta_N,q_N,F_N)$$(Q_N,\Sigma,\delta_N,q_N,F_N)$ into a DFA
+$(Q_D,\Sigma,\delta_D,q_D,F_D)$$(Q_D,\Sigma,\delta_D,q_D,F_D)$, the
+algorithm is the following:
+Create all $Q_D = \mathcal{P}(Q_N)$$Q_D = \mathcal{P}(Q_N)$
+For each subset state $p \in Q_D$$p \in Q_D$ and for each symbol $a \in
+\Sigma$$a \in \Sigma$:
+$\delta_D(p,a) = \bigcup_{q \in p} \delta_N(q,a)$$\delta_D(p,a) =
+\bigcup_{q \in p} \delta_N(q,a)$
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+18/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+The initial state $q_D$$q_D$ is $\{ q_N \}$$\{ q_N \}$ (it starts in exactly
+one state, the initial state of the NFA)
+The final states $F_D$$F_D$ are all subset states $p \in Q_D$$p \in Q_D$
+such that $p \cap F_N \neq \emptyset$$p \cap F_N \neq \emptyset$ (any
+state that is in some accepting state of the NFA)
+In practice, it's not worth it to create all states, just create them as needed
+starting from the initial state $\{q_N\}$$\{q_N\}$
+
+keyboard_arrow_down NFA → DFA Example: Bitstrings whose 2nd to last symbol is 1
+Let us convert the given NFA into a DFA
+The initial state is $\{ q_0 \}$$\{ q_0 \}$
+
+State $\{ q_0 \}$$\{ q_0 \}$ represents a single NFA state, so it is easy:
+$\delta_N(q_0,0) = \{q_0\}$$\delta_N(q_0,0) = \{q_0\}$ and
+$\delta_N(q_0,1) = \{q_0, q_1\}$$\delta_N(q_0,1) = \{q_0, q_1\}$, so
+$\delta_D(\{ q_0 \},0) = \{q_0\}$$\delta_D(\{ q_0 \},0) = \{q_0\}$ and
+$\delta_D(\{ q_0 \},1) = \{q_0, q_1\}$$\delta_D(\{ q_0 \},1) = \{q_0, q_1\}$
+
+This introduced a new state $\{q_0, q_1\}$$\{q_0, q_1\}$, which represents two
+simultaneous states of the NFA; we must apply the transitions to all states
+$\delta_N(q_0,0) = \{q_0\}$$\delta_N(q_0,0) = \{q_0\}$ and
+$\delta_N(q_1,0) = \{q_2\}$$\delta_N(q_1,0) = \{q_2\}$, so $\delta_D(\
+{q_0,q_1\},0) = \{q_0,q_2\}$$\delta_D(\{q_0,q_1\},0) = \{q_0,q_2\}$
+$\delta_N(q_0,1) = \{q_0,q_1\}$$\delta_N(q_0,1) = \{q_0,q_1\}$ and
+$\delta_N(q_1,1) = \{q_2\}$$\delta_N(q_1,1) = \{q_2\}$, so $\delta_D(\
+{q_0,q_1\},1) = \{q_0,q_1,q_2\}$$\delta_D(\{q_0,q_1\},1) = \{q_0,q_1,q_2\}$
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+19/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+This introduced two new states, $\{q_0, q_2\}$$\{q_0, q_2\}$ and $\{q_0, q_1,
+q_2\}$$\{q_0, q_1, q_2\}$
+$\delta_N(q_0,0) = \{q_0\}$$\delta_N(q_0,0) = \{q_0\}$ and
+$\delta_N(q_2,0) = \emptyset$$\delta_N(q_2,0) = \emptyset$, so
+$\delta_D(\{q_0,q_2\},0) = \{q_0\}$$\delta_D(\{q_0,q_2\},0) = \{q_0\}$
+$\delta_N(q_0,1) = \{q_0,q_1\}$$\delta_N(q_0,1) = \{q_0,q_1\}$ and
+$\delta_N(q_2,1) = \emptyset$$\delta_N(q_2,1) = \emptyset$, so
+$\delta_D(\{q_0,q_2\},1) = \{q_0, q_1\}$$\delta_D(\{q_0,q_2\},1) = \{q_0,
+q_1\}$
+$\delta_N(q_0,0) = \{q_0\}$$\delta_N(q_0,0) = \{q_0\}$, $\delta_N(q_1,0)
+= \{q_2\}$$\delta_N(q_1,0) = \{q_2\}$ and $\delta_N(q_2,0) =
+\emptyset$$\delta_N(q_2,0) = \emptyset$, so $\delta_D(\{q_0,q_1,q_2\},0)
+= \{q_0, q_2\}$$\delta_D(\{q_0,q_1,q_2\},0) = \{q_0, q_2\}$
+$\delta_N(q_0,1) = \{q_0, q_1\}$$\delta_N(q_0,1) = \{q_0, q_1\}$,
+$\delta_N(q_1,1) = \{q_2\}$$\delta_N(q_1,1) = \{q_2\}$ and $\delta_N(q_2,1)
+= \emptyset$$\delta_N(q_2,1) = \emptyset$, so $\delta_D(\
+{q_0,q_1,q_2\},0) = \{q_0,q_1, q_2\}$$\delta_D(\{q_0,q_1,q_2\},0) = \
+{q_0,q_1, q_2\}$
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+20/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+No new states introduced, the DFA is complete (only needed $4$$4$ states
+instead of the potential $2^3$$2^3$)
+G = DFA.from_nfa(nfa, retain_names=True, minify=False).diagram
+for n in G.nodes():
+if 'circle' in n.attr['shape']:
+n.attr['width'] = 1.5
+n.attr['height'] = 1.5
+n.attr['fixedsize'] = True
+n.attr['label'] = str(n).replace("}, {","},\n{")
+G.layout(prog='dot')
+G
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+21/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+1
+
+{q₁, q₀, q₂}
+1
+
+0
+
+0
+
+{q₁, q₀}
+
+1
+
+1
+0
+{q₀}
+
+0
+
+1
+
+1
+
+0
+
+────────────────────────────────────────────────────────
+{q₀}──0──▶{q₀}──1──▶{q₁,q₀}──1──▶{q₁,q₂,q₀}──0──▶{q₂,q₀} ✅
+
+DFA → NFA: by definition
+An NFA is an automaton where, for each state/symbol pair, there are arbitrary
+transitions
+A DFA is an automaton where, for each state/symbol pair, there is exactly one
+transition
+So DFA are particular cases of NFAs by definition
+
+keyboard_arrow_down 🛠 NFA → DFA Exercise: (Some) Python keywords
+Convert the following NFA into an equivalent DFA
+import string
+nfa = NFA(
+states={'q₀', 'q₁', 'q₂', 'q₃', 'q₄', 'q₅', 'q₁₁', 'q₂₁', 'q₃₁', 'q₃₂',
+input_symbols=string.ascii_lowercase,
+transitions={
+'q₀': { 'i' : {'q₁','q₂'}, 'e' : {'q₃','q₄','q₅'} },
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+22/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+'q₁': { 'f' : {'q₁₁'}},
+'q₂': { 'n' : {'q₂₁'}},
+'q₃': { 'l' : {'q₃₁'}},
+'q₃₁': { 's' : {'q₃₂'}},
+'q₃₂': { 'e' : {'q₃₃'}},
+'q₄': { 'l' : {'q₄₁'}},
+'q₄₁': { 'i' : {'q₄₂'}},
+'q₄₂': { 'f' : {'q₄₃'}},
+'q₅': { 'x' : {'q₅₁'}},
+'q₅₁': { 'c' : {'q₅₂'}},
+'q₅₂': { 'e' : {'q₅₃'}},
+'q₅₃': { 'p' : {'q₅₄'}},
+'q₅₄': { 't' : {'q₅₅'}},},
+initial_state='q₀',
+final_states={'q₁₁','q₂₁','q₃₃','q₄₃','q₅₅'} )
+nfa
+
+n
+
+q₂₁
+
+f
+
+q₁₁
+
+q₂
+
+i
+q₁
+i
+e
+
+q₀
+
+q₃
+
+l
+
+q₃₁
+
+s
+
+q₃₂
+
+e
+
+e
+e
+
+q₄
+
+l
+
+q₅
+
+x
+
+q₄₁
+
+q₅₁
+
+e
+
+l
+
+i
+
+i
+
+c
+
+q₄₂
+
+q₅₂
+
+f
+
+e
+
+f
+
+────────────────────────────────────
+q₀
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+23/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+│
+├──e──▶ q₃
+│
+
+│
+
+│
+
+└──l──▶ q₃₁
+
+│
+
+│
+
+│
+
+└──i──▶ ⛔️
+
+├──e──▶ q₄
+│
+
+│
+
+│
+
+└──l──▶ q₄₁
+
+│
+
+│
+
+│
+
+└──i──▶ q₄₂
+
+│
+
+│
+
+│
+
+└──f──▶ q₄₃
+
+✅
+
+└──e──▶ q₅
+└──l──▶ ⛔️
+
+G = DFA.from_nfa(nfa, retain_names=True, minify=False).diagram
+for n in G.nodes():
+if 'circle' in n.attr['shape']:
+n.attr['width'] = 1.35
+n.attr['height'] = 1.35
+n.attr['fixedsize'] = True
+n.attr['label'] = str(n).replace("}, {","},\n{")
+G.layout(prog='dot')
+G
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+24/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+{q₅₁}
+
+x
+
+{q₃, q₅, q₄}
+
+l
+
+{q₄₁, q₃₁}
+
+e
+{q₀}
+i
+f
+
+{q₁, q₂}
+
+{q₁₁}
+
+n
+
+{q₂₁}
+
+e
+
+l
+
+i
+
+f
+
+─────────────────────────────────────────────────────────
+{q₀}──e──▶{q₃,q₄,q₅}──l──▶{q₃₁,q₄₁}──i──▶{q₄₂}──f──▶{q₄₃} ✅
+
+Non-deterministic finite automata with
+
+keyboard_arrow_down $\varepsilon$$\varepsilon$ transitions
+
+$\varepsilon$$\varepsilon$ transitions are spontaneous, they allow the state to
+change without consuming input symbols
+$\varepsilon$$\varepsilon$ is not a symbol of the alphabet $\Sigma$$\Sigma$,
+and does not appear in the words, it represents the absence of input
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+25/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+A non-deterministic finite automaton with $\varepsilon$$\varepsilon$ transitions
+(εNFA) is a tuple $(Q,\Sigma,\delta,q_i,F)$$(Q,\Sigma,\delta,q_i,F)$
+$Q$$Q$ is a finite set of states
+$\Sigma$$\Sigma$ is the input alphabet
+$\delta : Q \times \Sigma \cup \color{red}{\{ \varepsilon \}} → \mathcal{P}
+(Q)$$\delta : Q \times \Sigma \cup \color{red}{\{ \varepsilon \}} →
+\mathcal{P}(Q)$ is a transition function
+$q_i \in Q$$q_i \in Q$ is the initial state
+$F \subseteq Q$$F \subseteq Q$ is a set of final (or accepting) states
+To reason about εNFAs, we need the $\varepsilon$$\varepsilon$-closure of a
+state, every state reachable through spontaneous transitions
+base case: $q \in ɛ\text{-closure}(q)$$q \in ɛ\text{-closure}(q)$
+inductive case: if $p$$p$ is in $ɛ\text{-closure}(q)$$ɛ\text{-closure}(q)$,
+$\delta(p,ɛ) \subseteq ɛ\text{-closure}(q)$$\delta(p,ɛ) \subseteq ɛ\text{closure}(q)$
+we generalize this to apply to a set of states $S$$S$ as $ɛ\text{-closure}
+(S) = \bigcup_{q \in S} ɛ\text{-closure}(q)$$ɛ\text{-closure}(S) =
+\bigcup_{q \in S} ɛ\text{-closure}(q)$
+The extended transition function $\hat{\delta} : Q \times \Sigma^* →
+\mathcal{P}(Q)$$\hat{\delta} : Q \times \Sigma^* → \mathcal{P}(Q)$ is then
+defined as
+$\hat{\delta}(q,\varepsilon) = ɛ\text{-closure}(q)$$\hat{\delta}
+(q,\varepsilon) = ɛ\text{-closure}(q)$
+$\hat{\delta}(q,xa) = ɛ\text{-closure}\left(\bigcup_{p \in \hat{\delta}(q,x)}
+\delta(p,a)\right)$$\hat{\delta}(q,xa) = ɛ\text{-closure}\left(\bigcup_{p \in
+\hat{\delta}(q,x)} \delta(p,a)\right)$
+The accepting condition is the same as NFAs without ɛ transitions, since
+$\hat{\delta}$$\hat{\delta}$ applies the ɛ-clousure
+A word $w$$w$ is accepted iff $\hat{\delta}(q_i,w) \cap F \neq
+\emptyset$$\hat{\delta}(q_i,w) \cap F \neq \emptyset$
+
+keyboard_arrow_down ɛNFA Example: Floating point numbers
+nfa = NFA(
+states={'q₀', 'q₁', 'q₂', 'q₃', 'q₄'},
+input_symbols={'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', 'transitions={
+'q₀': { c : {'q₁'} for c in { '', '+', '-'}},
+'q₁': { '.' : {'q₂'}} | { c : {'q₃'} for c in {'0', '1', '2', '3', '
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+26/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+'q₂': { c : {'q₄'} for c in {'0', '1', '2', '3', '4', '5', '6', '7',
+'q₃': { '.' : {'q₄'}} | { c : {'q₃'} for c in {'0', '1', '2', '3', '
+'q₄': { c : {'q₄'} for c in {'0', '1', '2', '3', '4', '5', '6', '7',
+initial_state='q₀',
+final_states={'q₄'} )
+nfa
+
+0,1,2,3,4,5,6,7,8,9
+
+0,1,2,3,4,5,6,7,8,9
++,-,ε
+
+q₀
+
+q₁
+
+q₃
+
+.
+
+0,1,2,
+q₂
+
+$\varepsilon\text{-closure}(q_0) = \{q_0, q_1\}$$\varepsilon\text{-closure}(q_0)
+= \{q_0, q_1\}$
+$\varepsilon\text{-closure}(q_1) = \{q_1\}$$\varepsilon\text{-closure}(q_1) = \
+{q_1\}$
+$\varepsilon\text{-closure}(q_2) = \{q_2\}$$\varepsilon\text{-closure}(q_2) = \
+{q_2\}$
+$\varepsilon\text{-closure}(q_3) = \{q_3\}$$\varepsilon\text{-closure}(q_3) = \
+{q_3\}$
+$\varepsilon\text{-closure}(q_4) = \{q_4\}$$\varepsilon\text{-closure}(q_4) = \
+{q_4\}$
+
+-
+
+.
+
+4
+
+5
+
+────────────────────────────────────
+q₀
+│
+└──-──▶ q₁
+│
+└──.──▶ q₂
+│
+└──4──▶ q₄
+│
+└──5──▶ q₄ ✅
+q₁
+│
+└──-──▶ ⛔️
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+27/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+3
+
+5
+
+.
+
+4
+
+────────────────────────────────────
+q₀
+│
+└──3──▶ ⛔️
+q₁
+│
+└──3──▶ q₃
+│
+└──5──▶ q₃
+│
+└──.──▶ q₄
+│
+└──4──▶ q₄ ✅
+
+εNFAs vs. NFAs vs. DFAs
+εNFAs are equivalent to NFAs and DFAs, they can recognize exactly the same
+languages
+εNFAs allow us to more easily encode automata, that can be then converted into
+DFA for execution
+This is still done with the subset construction, but now considering the
+$\varepsilon$$\varepsilon$-closure
+
+keyboard_arrow_down 🛠 ɛNFA → DFA Exercise: (Some) Python keywords
+Convert the following εNFA into a DFA
+import string
+nfa = NFA(
+states={'qᵢ', 'q₁', 'q₂', 'q₃', 'q₄', 'q₅', 'q₁₀', 'q₂₀', 'q₃₀', 'q₄₀',
+input_symbols=string.ascii_lowercase,
+transitions={
+'qᵢ': {'' : {'q₁', 'q₂', 'q₃', 'q₄', 'q₅'}},
+'q₁': { 'i' : {'q₁₀'}},
+'q₂': { 'i' : {'q₂₀'}},
+'q₃': { 'e' : {'q₃₀'}},
+'q₄': { 'e' : {'q₄₀'}},
+'q₅': { 'e' : {'q₅₀'}},
+'q₁₀': { 'f' : {'q₁₁'}},
+'q₂₀': { 'n' : {'q₂₁'}},
+'q₃₀': { 'l' : {'q₃₁'}},
+'q₃₁': { 's' : {'q₃₂'}},
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+28/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+'q₃₂': { 'e' : {'q₃₃'}},
+'q₄₀': { 'l' : {'q₄₁'}},
+'q₄₁': { 'i' : {'q₄₂'}},
+'q₄₂': { 'f' : {'q₄₃'}},
+'q₅₀': { 'x' : {'q₅₁'}},
+'q₅₁': { 'c' : {'q₅₂'}},
+'q₅₂': { 'e' : {'q₅₃'}},
+'q₅₃': { 'p' : {'q₅₄'}},
+'q₅₄': { 't' : {'q₅₅'}},
+'q₁₁': { '' : {'qⱼ'}},
+'q₂₁': { '' : {'qⱼ'}},
+'q₃₃': { '' : {'qⱼ'}},
+'q₄₃': { '' : {'qⱼ'}},
+'q₅₅': { '' : {'qⱼ'}} },
+initial_state='qᵢ',
+final_states={'qⱼ'} )
+nfa
+
+q₂
+
+ε
+
+q₅
+
+i
+
+q₂₀
+
+e
+
+q₅₀
+
+n
+
+x
+
+q₅₁
+
+ε
+qᵢ
+
+ε
+
+q₄
+
+e
+
+q₄₀
+
+l
+
+q₄₁
+
+ε
+ε
+
+q₁
+
+i
+
+q₃
+
+e
+
+f
+
+q₁₀
+
+q₃₀
+
+l
+
+q₃₁
+
+G = DFA.from_nfa(nfa, retain_names=True, minify=False).diagram
+for n in G.nodes():
+if 'circle' in n.attr['shape']:
+n.attr['width'] = 2.2
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+29/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+n.attr['height'] = 2.2
+n.attr['fixedsize'] = True
+n.attr['label'] = str(n).replace("}, {","},\n{")
+G.layout(prog='dot')
+G
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+30/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+/usr/local/lib/python3.12/dist-packages/pygraphviz/agraph.py:1403: RuntimeWar
+warnings.warn(b"".join(errors).decode(self.encoding), RuntimeWarning)
+
+n
+
+{q₁₀, q₂₀}
+
+f
+
+i
+
+{q₁, q₃, q₂, q₅, qᵢ, q₄}
+e
+
+{q₄₀, q₅₀, q₃₀}
+
+x
+
+l
+
+keyboard_arrow_down
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+31/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+FAs vs. REs
+FAs and REs are formalisms with the same expressive power
+Any RE can be (automatically) converted into an FA, and vice-versa
+Since REs are more human-friendly, and DFAs more efficient to execute, the
+typical pipeline is
+RE → ɛNFA → DFA
+
+RE → ɛNFA: Thompson's construction
+Thompson's construction acts inductively on an RE to convert it into an ɛNFA
+Each step produces an ɛNFA with exactly one initial state and one accepting
+state
+Base cases:
+∅
+
+ɛ
+
+$a \in \Sigma$$a \in \Sigma$
+
+Inductive steps, for $re_k$$re_k$ with initial state $k_i$$k_i$ and $k_f$$k_f$
+$re_1 re_2$$re_1 re_2$
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+32/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+$re_1 | re_2$$re_1 | re_2$
+
+${re_1}^*$${re_1}^*$
+
+keyboard_arrow_down RE → ɛNFA Example: Bitstrings with at least one $1$$1$ revisited
+0*1(0|1)*
+0
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+33/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+NFA(
+states={'q₀', 'q₁'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': {'0' : {'q₁'}} },
+initial_state='q₀',
+final_states={'q₁'} )
+
+q₀
+
+0
+
+q₁
+
+0*
+NFA(
+states={'q₀', 'q₁', 'q₂', 'q₃'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': {'0' : {'q₁'}},
+'q₂': {'' : {'q₀', 'q₃'}},
+'q₁': {'' : {'q₀', 'q₃'}}},
+initial_state='q₂',
+final_states={'q₃'} )
+
+ε
+q₂
+
+q₀
+
+0
+ε
+
+q₁
+
+ε
+
+ε
+
+q₃
+
+0*1
+NFA(
+states={'q₀', 'q₁', 'q₂', 'q₃', 'q₄', 'q₅'},
+input_symbols={'0', '1'},
+transitions={
+'q₀': {'0' : {'q₁'}},
+'q₂': {'' : {'q₀', 'q₃'}},
+'q₁': {'' : {'q₀', 'q₃'}},
+'q₃': {'' : {'q₄'}},
+'q₄': {'1' : {'q₅'}}},
+initial_state='q₂',
+final_states={'q₅'} )
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+34/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+ε
+
+q₀
+
+0
+ε
+
+q₁
+
+ε
+
+ε
+
+q₂
+
+ε
+
+q₃
+
+q₄
+
+0|1
+NFA(
+states={'q₆', 'q₇', 'q₈', 'q₉', 'q₁₀', 'q₁₁'},
+input_symbols={'0', '1'},
+transitions={
+'q₆': {'' : {'q₇', 'q₈'}},
+'q₇': {'0' : {'q₉'}},
+'q₈': {'1' : {'q₁₀'}},
+'q₉': {'' : {'q₁₁'}},
+'q₁₀': {'' : {'q₁₁'}}},
+initial_state='q₆',
+final_states={'q₁₁'} )
+
+ε
+q₆
+
+q₈
+
+1
+
+q₁₀
+
+ε
+q₇
+
+0
+
+ε
+ε
+
+q₁₁
+
+q₉
+
+(0|1)*
+NFA(
+states={'q₆', 'q₇', 'q₈', 'q₉', 'q₁₀', 'q₁₁', 'q₁₂', 'q₁₃'},
+input_symbols={'0', '1'},
+transitions={
+'q₆': {'' : {'q₇', 'q₈'}},
+'q₇': {'0' : {'q₉'}},
+'q₈': {'1' : {'q₁₀'}},
+'q₉': {'' : {'q₁₁'}},
+'q₁₀': {'' : {'q₁₁'}},
+'q₁₁': {'' : {'q₁₃', 'q₆'}},
+'q₁₂': {'' : {'q₆', 'q₁₃'}}},
+initial_state='q₁₂',
+final_states={'q₁₃'} )
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+35/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+q₈
+
+1
+
+q₁₀
+ε
+
+ε
+ε
+ε
+q₁₂
+
+q₆
+
+q₇
+
+0
+
+q₉
+
+ε
+
+ε
+
+ε
+
+0*1(0|1)*
+NFA(
+states={'q₀', 'q₁', 'q₂', 'q₃', 'q₄', 'q₅', 'q₆', 'q₇', 'q₈', 'q₉', 'q₁₀
+input_symbols={'0', '1'},
+transitions={
+'q₀': {'0' : {'q₁'}},
+'q₂': {'' : {'q₀', 'q₃'}},
+'q₁': {'' : {'q₀', 'q₃'}},
+'q₃': {'' : {'q₄'}},
+'q₄': {'1' : {'q₅'}},
+'q₆': {'' : {'q₇', 'q₈'}},
+'q₇': {'0' : {'q₉'}},
+'q₈': {'1' : {'q₁₀'}},
+'q₉': {'' : {'q₁₁'}},
+'q₁₀': {'' : {'q₁₁'}},
+'q₁₁': {'' : {'q₁₃', 'q₆'}},
+'q₁₂': {'' : {'q₆', 'q₁₃'}},
+'q₅': {'' : {'q₁₂'}}},
+initial_state='q₂',
+final_states={'q₁₃'} )
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+36/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+ε
+q₂
+
+q₀
+
+0
+ε
+
+q₁
+
+ε
+
+ε
+
+q₃
+
+ε
+
+q₄
+
+dfa = DFA.from_nfa(nfa,minify=False,retain_names=True)
+G = dfa.diagram
+for n in G.nodes():
+if 'circle' in n.attr['shape']:
+n.attr['width'] = 2.6
+n.attr['height'] = 2.6
+n.attr['fixedsize'] = True
+n.attr['label'] = str(n).replace("}, {","},\n{")
+G.layout(prog='dot')
+G
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+37/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+0
+
+{q₁, q₀, q₃, q₄}
+0
+
+{q₃, q₀, q₂, q₄}
+
+1
+
+keyboard_arrow_down Minimal DFAs
+DFAs (but not NFAs!) have a unique, minimized version, that can be
+automatically calculated
+It works by identifying equivalent states and merging them
+This allows more efficient implementations
+It also allows to test automata equivalence: two automata are equivalent if their
+minimized deterministic versions are isomorphic
+G = dfa.minify(retain_names=True).diagram
+for n in G.nodes():
+if 'circle' in n.attr['shape']:
+n.attr['width'] = 2.9
+n.attr['height'] = 2.9
+n.attr['fixedsize'] = True
+n.attr['label'] = str(n).replace("}, {","},\n{")
+G.layout(prog='dot')
+G
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+38/39
+
+29/04/26, 23:42
+
+PL - NB02 - Regular Languages - Colab
+
+0
+
+https://colab.research.google.com/drive/1OulN08Nl4d4tAzHdAlYbv_fc9B8CWaGC?usp=sharing#printMode=true
+
+0,1
+
+39/39
+
+
