@@ -1,0 +1,4 @@
+PROGRAM BAD
+N = 5
+PRINT *, N
+END
