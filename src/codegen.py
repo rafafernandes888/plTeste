@@ -1,18 +1,5 @@
 """
 Gerador de Código EWVM do Compilador Fortran 77.
-
-Percorre a AST (Abstract Syntax Tree) e traduz cada nó em instruções
-da máquina virtual EWVM (EPL Web Virtual Machine).
-
-Utiliza a SymbolTable para gestão de memória (offsets de variáveis)
-e o Optimizer para otimizar a AST antes da geração.
-
-Suporta:
-- Variáveis escalares e arrays
-- Expressões aritméticas e lógicas
-- Estruturas de controlo (IF/ELSE, DO loops, GOTO)
-- Chamadas a funções com passagem de argumentos via memória estática
-- Input/Output (READ, PRINT)
 """
 
 import sys
@@ -32,26 +19,18 @@ class CodeGenerator:
         self.loop_stack = []
 
     def emit(self, instruction):
-        """Emite uma instrução EWVM."""
         self.code.append(instruction)
 
     def get_code(self):
-        """Retorna o código EWVM completo como string."""
         return '\n'.join(self.code)
 
-    # ─────────────────────────────────────────────
-    # Ponto de entrada da geração de código
-    # ─────────────────────────────────────────────
     def generate(self, tree):
-        """Gera código EWVM a partir da AST."""
         if not isinstance(tree, list):
             print("Erro: AST inválida")
             return
 
-        # Fase 1: Otimização da AST (Constant Folding)
         tree = self.optimizer.optimize(tree)
 
-        # Fase 2: Alocar memória para todas as variáveis
         for unit in tree:
             if unit[0] == 'program':
                 self._collect_declarations(unit[2])
@@ -60,8 +39,13 @@ class CodeGenerator:
                 self.symbols.declare_function(name, var_type, args)
                 self._collect_declarations(statements)
 
-        # Fase 3: Emitir código
         self.emit("START")
+
+        # Reservar 2 posições temporárias para computação de potências
+        self.symbols.declare_var('__POW_BASE__', 'INTEGER')
+        self.symbols.declare_var('__POW_EXP__', 'INTEGER')
+        self._pow_base_offset = self.symbols.var_offset('__POW_BASE__')
+        self._pow_exp_offset = self.symbols.var_offset('__POW_EXP__')
 
         total = self.symbols.total_allocated
         if total > 0:
@@ -79,15 +63,10 @@ class CodeGenerator:
                 _, var_type, name, args, statements = unit
                 self.current_function = name
                 self.emit(f"func{name}:")
-                # Argumentos já foram guardados em globals pelo caller
                 for stmt in statements:
                     self._gen_statement(stmt)
 
-    # ─────────────────────────────────────────────
-    # Recolha de declarações (alocação de memória)
-    # ─────────────────────────────────────────────
     def _collect_declarations(self, statements):
-        """Regista todas as declarações de variáveis e arrays na SymbolTable."""
         for stmt in statements:
             if stmt[0] == 'decl':
                 _, var_type, names = stmt
@@ -97,20 +76,34 @@ class CodeGenerator:
                 _, var_type, name, size = stmt
                 self.symbols.declare_array(name, var_type, size)
 
-    # ─────────────────────────────────────────────
-    # Geração de statements
-    # ─────────────────────────────────────────────
     def _gen_statement(self, stmt):
         kind = stmt[0]
 
         if kind == 'decl' or kind == 'decl_array':
-            pass  # Já tratado na fase de alocação
+            pass
 
         elif kind == 'assign':
             _, name, expr = stmt
             self._gen_expr(expr)
             offset = self.symbols.var_offset(name)
             self.emit(f"STOREG {offset}")
+
+        elif kind == 'assign_array':
+            _, name, index_expr, value_expr = stmt
+            arr_info = self.symbols.lookup_array(name)
+            offset = arr_info['offset']
+            # 1. Endereço base do array
+            self.emit("PUSHGP")
+            self.emit(f"PUSHI {offset}")
+            self.emit("PADD")
+            # 2. Índice (Fortran base-1 -> memória base-0)
+            self._gen_expr(index_expr)
+            self.emit("PUSHI 1")
+            self.emit("SUB")
+            # 3. Valor a guardar
+            self._gen_expr(value_expr)
+            # Pilha: [endereço, índice, valor] -> STOREN
+            self.emit("STOREN")
 
         elif kind == 'print':
             _, items = stmt
@@ -136,28 +129,22 @@ class CodeGenerator:
                     index_expr = var[2]
                     arr_info = self.symbols.lookup_array(name)
                     offset = arr_info['offset']
-                    # 1. Endereço base do array
                     self.emit("PUSHGP")
                     self.emit(f"PUSHI {offset}")
                     self.emit("PADD")
-                    # 2. Índice (Fortran começa em 1, memória em 0)
                     self._gen_expr(index_expr)
                     self.emit("PUSHI 1")
                     self.emit("SUB")
-                    # 3. Valor (ler do input)
                     self.emit("READ")
                     self.emit("ATOI")
-                    # Pilha: [endereço, índice, valor] -> STOREN
                     self.emit("STOREN")
 
         elif kind == 'label':
             _, label_num, inner_stmt = stmt
             if inner_stmt[0] == 'continue' and self.loop_stack:
-                # É o CONTINUE de um DO loop
                 info = self.loop_stack.pop()
                 step = info['step']
                 offset = info['var_offset']
-                # Incrementar a variável de controlo
                 self.emit(f"PUSHG {offset}")
                 if step:
                     self._gen_expr(step)
@@ -165,9 +152,7 @@ class CodeGenerator:
                     self.emit("PUSHI 1")
                 self.emit("ADD")
                 self.emit(f"STOREG {offset}")
-                # Voltar ao início do loop
                 self.emit(f"JUMP {info['loop_label']}")
-                # Label de saída do loop
                 self.emit(f"lbl{label_num}end:")
             else:
                 self.emit(f"lbl{label_num}:")
@@ -192,11 +177,7 @@ class CodeGenerator:
         elif kind == 'do':
             self._gen_do(stmt)
 
-    # ─────────────────────────────────────────────
-    # Geração de expressões
-    # ─────────────────────────────────────────────
     def _gen_expr(self, expr):
-        """Gera código EWVM para uma expressão."""
         if not isinstance(expr, tuple):
             return
 
@@ -224,13 +205,42 @@ class CodeGenerator:
 
         elif kind == 'binop':
             _, op, left, right = expr
-            self._gen_expr(left)
-            self._gen_expr(right)
-            ops = {
-                '+': 'ADD', '-': 'SUB',
-                '*': 'MUL', '/': 'DIV',
-            }
-            self.emit(ops[op])
+            if op == '**':
+                # Potência: base ** exp via loop com slots temporários
+                # 1. Guardar base e expoente nos slots temporários
+                self._gen_expr(left)
+                self.emit(f"STOREG {self._pow_base_offset}")
+                self._gen_expr(right)
+                self.emit(f"STOREG {self._pow_exp_offset}")
+                # 2. resultado = 1
+                self.emit("PUSHI 1")
+                # 3. Loop: enquanto exp > 0, resultado *= base, exp--
+                loop_lbl = self.symbols.new_label()
+                end_lbl = self.symbols.new_label()
+                self.emit(f"{loop_lbl}:")
+                self.emit(f"PUSHG {self._pow_exp_offset}")
+                self.emit("PUSHI 0")
+                self.emit("SUP")
+                self.emit(f"JZ {end_lbl}")
+                # resultado (no topo da stack) *= base
+                self.emit(f"PUSHG {self._pow_base_offset}")
+                self.emit("MUL")
+                # exp--
+                self.emit(f"PUSHG {self._pow_exp_offset}")
+                self.emit("PUSHI 1")
+                self.emit("SUB")
+                self.emit(f"STOREG {self._pow_exp_offset}")
+                self.emit(f"JUMP {loop_lbl}")
+                self.emit(f"{end_lbl}:")
+                # O resultado fica no topo da stack
+            else:
+                self._gen_expr(left)
+                self._gen_expr(right)
+                ops = {
+                    '+': 'ADD', '-': 'SUB',
+                    '*': 'MUL', '/': 'DIV',
+                }
+                self.emit(ops[op])
 
         elif kind == 'uminus':
             self.emit("PUSHI 0")
@@ -269,22 +279,16 @@ class CodeGenerator:
             self._gen_expr(expr[1])
             self.emit("NOT")
 
-    # ─────────────────────────────────────────────
-    # Geração de chamadas a funções
-    # ─────────────────────────────────────────────
     def _gen_call(self, expr):
-        """Gera código para chamadas a funções (built-in, arrays, e do utilizador)."""
         name = expr[1]
         args = expr[2]
 
         if name == 'MOD':
-            # Função built-in MOD
             self._gen_expr(args[0])
             self._gen_expr(args[1])
             self.emit("MOD")
 
         elif self.symbols.array_exists(name):
-            # Acesso a array: NUMS(I)
             arr_info = self.symbols.lookup_array(name)
             offset = arr_info['offset']
             self.emit("PUSHGP")
@@ -296,8 +300,6 @@ class CodeGenerator:
             self.emit("LOADN")
 
         else:
-            # Função definida pelo utilizador
-            # F77 static argument passing: guardar args em variáveis globais
             func_info = self.symbols.lookup_function(name)
             for param_name, arg_expr in zip(func_info['params'], args):
                 self._gen_expr(arg_expr)
@@ -306,13 +308,9 @@ class CodeGenerator:
 
             self.emit(f"PUSHA func{name}")
             self.emit("CALL")
-            # O resultado é lido da variável global com o nome da função
             offset = self.symbols.var_offset(name)
             self.emit(f"PUSHG {offset}")
 
-    # ─────────────────────────────────────────────
-    # Geração de IF/ELSE
-    # ─────────────────────────────────────────────
     def _gen_if(self, stmt):
         _, condition, then_block, else_block = stmt
         if else_block:
@@ -335,22 +333,16 @@ class CodeGenerator:
                 self._gen_statement(s)
             self.emit(f"{end_label}:")
 
-    # ─────────────────────────────────────────────
-    # Geração de DO loops
-    # ─────────────────────────────────────────────
     def _gen_do(self, stmt):
         _, label_num, var_name, start, end, step = stmt
         offset = self.symbols.var_offset(var_name)
         loop_label = self.symbols.new_label()
 
-        # Inicializar variável de controlo
         self._gen_expr(start)
         self.emit(f"STOREG {offset}")
 
-        # Início do loop
         self.emit(f"{loop_label}:")
 
-        # Condição: var > end? Se sim, salta para fora
         self.emit(f"PUSHG {offset}")
         self._gen_expr(end)
         self.emit("SUP")
@@ -358,27 +350,9 @@ class CodeGenerator:
         self.emit(f"JUMP lbl{label_num}end")
         self.emit(f"{loop_label}b:")
 
-        # Guardar informação do loop para usar no CONTINUE
         self.loop_stack.append({
             'var_offset': offset,
             'step': step,
             'loop_label': loop_label,
             'label_num': label_num,
         })
-
-
-if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Uso: python codegen.py <ficheiro.f>")
-        sys.exit(1)
-
-    with open(sys.argv[1], 'r', encoding='utf-8') as f:
-        source = f.read()
-
-    source = preprocess(source)
-    lex = lexer_module.lex.lex(module=lexer_module)
-    tree = parser_module.parser.parse(source, lexer=lex)
-
-    gen = CodeGenerator()
-    gen.generate(tree)
-    print(gen.get_code())
